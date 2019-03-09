@@ -41,7 +41,7 @@ And returns this to the user.
 
 For a diet with 1,800 calories per day, it is recommended that you consume the following:
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
 library(plotly)
 p <- plot_ly(
   x = c("fat", "protein", "carbs"),
