@@ -64,6 +64,3 @@ https://github.com/tylerburleigh/tylerburleigh.github.io/tree/master/DDP/pitch_s
 
 The Shiny app source code is here:
 https://github.com/tylerburleigh/coursera_projects/tree/master/jhu-data-science/developing_data_products/project/macronutrient_nlp
-
-
-
