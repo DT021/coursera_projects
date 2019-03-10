@@ -15,20 +15,21 @@ ui <- fluidPage(theme = "bootstrap.css",
   absolutePanel(
     id = "myId", fixed = TRUE,
     draggable = FALSE, top = 0, left = 0, right = 0, bottom = 0,
-    width = 600, height = "auto",
+    width = "800px", height = "auto",
     
     h1("Macronutrient Analysis of Recipe"),
     p("By Tyler Burleigh, 3/9/2019"),
     h2("Instructions"),
     p("To use this app, simply enter a list of ingredients, each on a separate 
       line, and click Submit. After the recipe is processed, you will see how
-      many grams of fat, protein, carbs, and how many calories are in the recipe!"),
-    p("Credit: This app is made possible by the Nutritionix API 
-      (https://developer.nutritionix.com)."),
-    br(),
-    textAreaInput("ingredients", "Ingredients:", "", height='150px', width='500px'),
+      many grams of fat, protein, carbs, and how many calories are in the recipe! 
+      Credit: This app is made possible by the Edamam API 
+      (https://developer.edamam.com)."),
+    p("Example: Try entering:"),
+    p("1 cup beans"),
+    p("1 cup rice"),
+    textAreaInput("ingredients", "Ingredients:", "", height='100px', width='500px'),
     submitButton("Submit"),
-    br(),
     br(),
     uiOutput("calories")
   )

@@ -7,54 +7,26 @@ server <- function(input, output, session) {
   get_calories <- function(text) {
     
     data <- httr::POST(
-      "https://trackapi.nutritionix.com/v2/natural/nutrients/",
-      body = list(query = text),
-      httr::add_headers(`x-app-id` = "ID_HERE",
-                        `x-app-key` = "KEY_HERE"),
+      "https://api.edamam.com/api/nutrition-details?app_id=MYAPP&app_key=MYKEY",
+      body = list(title = "NA", ingr = text),
       encode = "json"
     )
     
     # Retrieve content
     result <- httr::content(data)
     
-    # Sum calories of all ingredients
-    sum(sapply(result, function (x) {
-      sapply(x, function(y) {
-        sum(y['nf_calories'][[1]])
-      })
-    })) -> calories
-    
-    # Sum fat of all ingredients
-    sum(sapply(result, function (x) {
-      sapply(x, function(y) {
-        sum(y['nf_total_fat'][[1]])
-      })
-    })) -> fat
-    
-    # Sum protein of all ingredients
-    sum(sapply(result, function (x) {
-      sapply(x, function(y) {
-        sum(y['nf_protein'][[1]])
-      })
-    })) -> protein
-    
-    # Sum protein of all ingredients
-    sum(sapply(result, function (x) {
-      sapply(x, function(y) {
-        sum(y['nf_total_carbohydrate'][[1]])
-      })
-    })) -> carbs
-    
-    paste0("Fat: ", fat, " g <br>",
-           "Protein: ", protein, " g <br>",
-           "Carbs: ", carbs, " g <br><br>",
-           "Calories: ", calories)
+    paste0("Fat: ", result$totalNutrients$FAT$quantity, " g || ",
+           "Protein: ", result$totalNutrients$PROCNT$quantity, " g || ",
+           "Carbs: ", result$totalNutrients$CHOCDF$quantity, " g <br>",
+           "Calories: ", result$totalNutrients$ENERC_KCAL$quantity)
   }
   
   # Render the output
   output$calories <- renderText({
-    if(input$ingredients != "")
-      get_calories(input$ingredients)
+    if(length(stringi::stri_split_lines(input$ingredients)[[1]]) > 1)
+      get_calories(stringi::stri_split_lines(input$ingredients)[[1]])
+    else if(input$ingredients == "") "Enter recipe above"
+    else "Recipe must be at least 2 lines in length"
   })
   
   

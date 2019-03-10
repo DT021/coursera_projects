@@ -1,0 +1,12 @@
+name: macronutrient_nlp
+title: macronutrient_nlp
+username:
+account: wizzywig
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 779071
+bundleId: 1928718
+url: https://wizzywig.shinyapps.io/macronutrient_nlp/
+when: 1552229840.47108
+asMultiple: FALSE
+asStatic: FALSE
