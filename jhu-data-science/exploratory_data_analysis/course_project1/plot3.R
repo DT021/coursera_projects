@@ -35,18 +35,15 @@ df %>%
 # Set graphics device as png with 480x480 size
 png('plot3.png', width = 480, height = 480, units = "px")
 
-# Plot without points
-with(df, plot(Datetime, Sub_metering_1, type = "n", 
+# Plot for Sub_metering_1
+with(df, plot(Datetime, Sub_metering_1, type = "l", 
               ylab = "Energy sub metering", xlab = ""))
 
-# Add spline for Sub_metering_1
-with(df, lines(spline(Sub_metering_1 ~ Datetime), col = "black"))
+# Add Sub_metering_2
+with(df, lines(Sub_metering_2 ~ Datetime, col = "red", type = "l"))
 
-# Sub_metering_2
-with(df, lines(spline(Sub_metering_2 ~ Datetime), col = "red"))
-
-# Sub_metering_3
-with(df, lines(spline(Sub_metering_3 ~ Datetime), col = "blue"))
+# Add Sub_metering_3
+with(df, lines(Sub_metering_3 ~ Datetime, col = "blue", type = "l"))
 
 # Add legend
 legend("topright", 

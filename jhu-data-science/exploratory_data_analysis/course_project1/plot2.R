@@ -35,12 +35,9 @@ df %>%
 # Set graphics device as png with 480x480 size
 png('plot2.png', width = 480, height = 480, units = "px")
 
-# Plot without points
-with(df, plot(Datetime, Global_active_power, type = "n", 
+# Plot
+with(df, plot(Datetime, Global_active_power, type = "l", 
               ylab = "Global Active Power (kilowatts)", xlab = ""))
-
-# Add spline
-with(df, lines(spline(Global_active_power ~ Datetime)))
 
 # Turn off graphics device
 dev.off()

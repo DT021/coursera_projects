@@ -40,35 +40,28 @@ par(mfrow = c(2, 2))
 
 ######
 # Plot 1 -- Top-left corner
-with(df, plot(Datetime, Global_active_power, type = "n", 
+with(df, plot(Datetime, Global_active_power, type = "l", 
               ylab = "Global Active Power", xlab = ""))
-
-# Add spline
-with(df, lines(spline(Global_active_power ~ Datetime)))
 
 
 ######
 # Plot 2 -- Top-right corner
-with(df, plot(Datetime, Voltage, type = "n", 
+with(df, plot(Datetime, Voltage, type = "l", 
               ylab = "Voltage", xlab = "datetime"))
-
-# Add spline
-with(df, lines(spline(Voltage ~ Datetime)))
 
 
 ######
 # Plot 3 -- Bottom-left corner
-with(df, plot(Datetime, Sub_metering_1, type = "n", 
+
+# Plot for Sub_metering_1
+with(df, plot(Datetime, Sub_metering_1, type = "l", 
               ylab = "Energy sub metering", xlab = ""))
 
-# Add spline for Sub_metering_1
-with(df, lines(spline(Sub_metering_1 ~ Datetime), col = "black"))
+# Add Sub_metering_2
+with(df, lines(Sub_metering_2 ~ Datetime, col = "red", type = "l"))
 
-# Sub_metering_2
-with(df, lines(spline(Sub_metering_2 ~ Datetime), col = "red"))
-
-# Sub_metering_3
-with(df, lines(spline(Sub_metering_3 ~ Datetime), col = "blue"))
+# Add Sub_metering_3
+with(df, lines(Sub_metering_3 ~ Datetime, col = "blue", type = "l"))
 
 # Add legend
 legend("topright", 
@@ -78,12 +71,8 @@ legend("topright",
 
 ######
 # Plot 4 -- Bottom-right corner
-with(df, plot(Datetime, Global_reactive_power, type = "n", 
+with(df, plot(Datetime, Global_reactive_power, type = "l", 
               xlab = "datetime"))
-
-# Add spline
-with(df, lines(spline(Global_reactive_power ~ Datetime)))
-
 
 
 # Turn off graphics device
