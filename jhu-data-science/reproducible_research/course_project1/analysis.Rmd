@@ -38,6 +38,9 @@ df %>%
 
 ## Mean / median daily steps
 
+Mean is 10765
+Median is 10766
+
 ```{r mean-median}
 # Mean and median number of steps taken each day
 (df %>% 
@@ -64,6 +67,8 @@ df %>%
 
 ## 5-minute interval with max steps, on average
 
+Interval 835 has the maximum number of steps, on average.
+
 ```{r interval-max-avg}
 # The 5-minute interval that, on average, contains the maximum number of steps
 df %>% 
@@ -76,8 +81,15 @@ df %>%
 
 ## Missing data imputation
 
+There are 2304 NA values.
+I will replace NAs with median steps for interval.
+
 ```{r impute}
 # Code to describe and show a strategy for imputing missing data
+
+# How many NA values are there?
+df %>% filter(is.na(steps)) %>% nrow
+
 # This will replace NA values with the median steps for an interval
 df %>%
     mutate(steps = replace_na(steps, median(df[interval == interval]$steps, na.rm=T))) -> df2
