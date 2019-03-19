@@ -397,6 +397,7 @@ df %&gt;%
 </div>
 <div id="mean-median-daily-steps" class="section level2">
 <h2>Mean / median daily steps</h2>
+<p>Mean is 10765 Median is 10766</p>
 <pre class="r"><code># Mean and median number of steps taken each day
 (df %&gt;% 
   group_by(date) %&gt;% # Group by date
@@ -421,6 +422,7 @@ df %&gt;%
 </div>
 <div id="minute-interval-with-max-steps-on-average" class="section level2">
 <h2>5-minute interval with max steps, on average</h2>
+<p>Interval 835 has the maximum number of steps, on average.</p>
 <pre class="r"><code># The 5-minute interval that, on average, contains the maximum number of steps
 df %&gt;% 
   group_by(interval) %&gt;% # Group by interval
@@ -445,8 +447,13 @@ df %&gt;%
 </div>
 <div id="missing-data-imputation" class="section level2">
 <h2>Missing data imputation</h2>
+<p>There are 2304 NA values. I will replace NAs with median steps for interval.</p>
 <pre class="r"><code># Code to describe and show a strategy for imputing missing data
-# This will replace NA values with the median steps for an interval
+
+# How many NA values are there?
+df %&gt;% filter(is.na(steps)) %&gt;% nrow</code></pre>
+<pre><code>## [1] 2304</code></pre>
+<pre class="r"><code># This will replace NA values with the median steps for an interval
 df %&gt;%
     mutate(steps = replace_na(steps, median(df[interval == interval]$steps, na.rm=T))) -&gt; df2</code></pre>
 </div>
