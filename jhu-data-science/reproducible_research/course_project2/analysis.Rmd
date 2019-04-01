@@ -1,0 +1,188 @@
+---
+title: "Weather Threats to Human Health and the Economy"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Synopsis
+
+In this report, I examine human and economic harms caused by weather events since 1995, as reported by the National Weather Service. Human harms are defined as fatalaties or injuries, while economic harms are the economic damage to property or crops. I examine the average harms caused per year for the years analyzed. Interestingly, the weather events posing the greatest risk to human health are not the same as those posing the greatest risk to the economy. Tornados posed the greatest threat to population health, causing nearly 1000 human injuries and fatalities per year on average, whereas tsunamis and flood conditions posed the greatest threat to the economy, causing more than $3B per year in damages on average. Overall, it appears that the types of weather events responsible for human and economic harms are relatively separable.
+
+# Data Processing
+
+## Load libraries
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+```
+
+
+## Load data
+
+```{r, message = FALSE, warning = FALSE}
+# Download, unzip file
+# but only if it doesn't already exist
+if(!file.exists("data/data.csv")){
+  # Download data file
+  download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", 
+                destfile = "data/data.csv.bz2")
+  
+  # Unzip file
+  # note: this takes a while (decompressed file is > 500MB)
+  R.utils::bunzip2("data/data.csv.bz2", "data/data.csv", remove = FALSE, skip = TRUE)
+}
+
+# Load file
+# note: memory footprint might be too large for some systems
+raw <- data.table::fread("data/data.csv", showProgress = FALSE) %>%
+  as_tibble()
+```
+
+## Process raw data
+
+```{r}
+# grepl, but defaults to ignore.case = T
+.grepl <- function(..., ignore.case = TRUE) {
+    grepl(..., ignore.case = ignore.case)
+}
+
+# Convert BGN_DATE to date
+raw %>%
+  separate(BGN_DATE, into = c("date", "time"), sep = " ") %>%
+  mutate(date = mdy(date)) -> df.all
+
+# Group the event types into a smaller number of related categories
+# Note: I am not a weather expert, just trying my best ;-)
+df.all %>%
+  filter(!.grepl("summary", EVTYPE)) %>% # Remove "summary" lines
+  mutate(event_type = case_when(
+    .grepl("hurricane|typhoon|wind|downburst|wnd", EVTYPE) ~ "hurricane/typhoon/wind",
+    .grepl("rain|shower|precip|coastal|surge|tropical|tsunami|floo|stream|fldg", EVTYPE) ~ "tsunami/flood",
+    .grepl("lightning|lighting|ligntning|thunder|tstm", EVTYPE) ~ "lightning/thunderstorm",
+    .grepl("freezing|hail|icy roads|mixed precip|sleet|heavy mix|glaze", EVTYPE) ~ "hail/freezing rain",
+    .grepl("snow|ice|blizzard|winter|wintry", EVTYPE) ~ "snow/ice",
+    .grepl("tornado|gustnado|landspout|torndao", EVTYPE) ~ "tornado",
+    .grepl("tide|surf|high water|sea|waves|swell|rising water|rip|wave|rough sea|drowning", EVTYPE) ~ "tide",
+    .grepl("mud|landslide|landslump|slide", EVTYPE) ~ "landslide",
+    .grepl("fire|smoke", EVTYPE) ~ "fire/smoke",
+    .grepl("fog", EVTYPE) ~ "fog",
+    .grepl("dust", EVTYPE) ~ "dust",
+    .grepl("cloud|funnel", EVTYPE) ~ "cloud",
+    .grepl("cold|cool|frost|freeze|hypothermia|low temperature|record low", EVTYPE) ~ "extreme cold",
+    .grepl("hot|heat|warm|high temperature|hyperthermia|record high", EVTYPE) ~ "extreme heat",
+    .grepl("temp", EVTYPE) ~ "other temperature",
+    .grepl("dry|drought|BELOW NORMAL PRECIPITATION|driest", EVTYPE) ~ "dry condition",
+    .grepl("wet", EVTYPE) ~ "wet condition",
+    .grepl("avalanche|avalance", EVTYPE) ~ "avalanche",
+    .grepl("erosion|erosin", EVTYPE) ~ "erosion",
+    .grepl("volcan|vog", EVTYPE) ~ "volcano-related",
+    .grepl("dam", EVTYPE) ~ "dam break",
+    .grepl("none", EVTYPE) ~ "none",
+    TRUE ~ "other"
+  )) -> df.all
+
+# Next we need to adjust the economic variables using the associated exponents
+# H = hundred
+# K = thousand
+# M = million
+# B = billion
+df.all %>%
+  mutate(PROPDMG = case_when(
+           .grepl("h", PROPDMGEXP) ~ PROPDMG * 10^2,
+           .grepl("k", PROPDMGEXP) ~ PROPDMG * 10^3,
+           .grepl("m", PROPDMGEXP) ~ PROPDMG * 10^6,
+           .grepl("b", PROPDMGEXP) ~ PROPDMG * 10^9,
+           TRUE ~ PROPDMG
+         ),
+         CROPDMG = case_when(
+           .grepl("h", CROPDMGEXP) ~ PROPDMG * 10^2,
+           .grepl("k", CROPDMGEXP) ~ CROPDMG * 10^3,
+           .grepl("m", CROPDMGEXP) ~ CROPDMG * 10^6,
+           .grepl("b", CROPDMGEXP) ~ CROPDMG * 10^9,
+           TRUE ~ CROPDMG
+         )
+  ) -> df.all
+
+# Next we will combine the human and economic harm variables
+df.all %>%
+  mutate(human_harms = FATALITIES + INJURIES,
+         economic_harms = PROPDMG + CROPDMG) -> df.all
+
+df.post95 <- df.all %>% filter(year(date) > 1995)
+```
+
+
+# Results
+
+## Population Health Impacts
+
+First, we are interested in looking across the United States to see which types of events (as indicated in the `EVTYPE` variable) are most harmful with respect to **population health**. Population health is operationalized as `FATALITIES` and `INJURIES`, which is defined here as a composite variable called `human_harms`.
+
+This analysis collapses US states and includes only events causing more than an average 10 harms per year.
+
+```{r}
+df.post95 %>%
+  group_by(event_type, year = year(date)) %>%
+  summarise(harms = sum(human_harms)) %>%
+  group_by(event_type) %>%
+  summarise(avg_harms = median(harms)) %>%
+  filter(avg_harms > 10) -> avg_human_harms_per_year_by_event
+
+avg_human_harms_per_year_by_event %>%
+  ggplot(., aes(x = reorder(event_type, avg_harms), y = avg_harms)) +
+  geom_bar(width = 1, stat = "identity") +
+  xlab("Event Type") +
+  ylab("Median Human Harms per Year\n(fatalities + casualties)") +
+  scale_y_continuous(breaks=seq(0, 1000, 100)) +
+  coord_flip() +
+  ggtitle("Median Human Harms per Year by Event Type,\nHighest Impact First")
+```
+
+
+## Economic Impacts
+
+Second, we are interested in looking across the United States to see which types of events (as indicated in the `EVTYPE` variable) have the greatest **economic consequences**. Economic consequences are operationalized as `PROPDMG` (property damage) and `CROPDMG` (damage to crops), which is defined here as a composite variable called `economic_harms`.
+
+This analysis collapses US states and includes only events causing more than an average of $1 million in damage per year.
+
+```{r}
+df.post95 %>%
+  group_by(event_type, year = year(date)) %>%
+  summarise(harms = sum(economic_harms)) %>%
+  group_by(event_type) %>%
+  summarise(avg_harms = median(harms)) %>%
+  filter(avg_harms > 1000^2) %>%
+  mutate(avg_harms_mil = avg_harms/1000^2) -> avg_economic_harms_per_year_by_event
+
+avg_economic_harms_per_year_by_event %>%
+  ggplot(., aes(x = reorder(event_type, avg_harms_mil), y = avg_harms_mil)) +
+  geom_bar(width = 1, stat = "identity") +
+  xlab("Event Type") +
+  ylab("Median Economic Damages per Year\n(property + crop damage, in millions $)") +
+  scale_y_continuous(breaks=seq(0, 4000, 500)) +
+  coord_flip() +
+  ggtitle("Median Economic Damages per Year by Event Type,\nHighest Impact First")
+```
+
+# APPENDIX
+
+## Why Limit to Post-1995?
+
+It seems that many events were not tracked prior to 1995. This is why the analysis is limited to post-1995.
+
+```{r}
+df.all %>% 
+  group_by(year = year(date)) %>%
+  count(event = event_type) %>%
+  ggplot(., aes(x = year, y = n, fill = event, color = event)) +
+  geom_line() + 
+  scale_x_continuous(breaks=seq(1950, 2010, 5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Weather Events Reported by Type and Year") +
+  ylab("Number of Events")
+```
+
+

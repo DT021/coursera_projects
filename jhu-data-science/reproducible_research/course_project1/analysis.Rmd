@@ -3,6 +3,7 @@ title: "Activity monitoring data"
 author: "Tyler Burleigh"
 date: "3/18/2019"
 output: html_document
+    keep_md: true
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
@@ -109,6 +110,18 @@ df2 %>%
     xlab("Daily Steps") + 
     ylab("Frequency") +
     theme(plot.margin = unit(c(1,1,1,1), "cm"))
+```
+
+
+## Mean and median post-imputation
+
+```{r mean-median-post-impute}
+# Calculate and report the mean and median total number of steps taken per day.
+(df2 %>% 
+  group_by(date) %>% # Group by date
+  summarize(steps = sum(steps)) %>% # Sum steps
+  select(steps) %>% # Select steps variable
+  summary(steps))[3:4] # Rows 3 and 4 of the summary object
 ```
 
 # Steps by interval and weekdays vs. weekends

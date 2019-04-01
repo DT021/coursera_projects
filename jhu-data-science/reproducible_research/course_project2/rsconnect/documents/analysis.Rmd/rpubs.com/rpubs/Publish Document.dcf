@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/481760/2591c35ba17c46c4b8abd5e0079a55ee
+bundleId: https://api.rpubs.com/api/v1/document/481760/2591c35ba17c46c4b8abd5e0079a55ee
+url: http://rpubs.com/tylerburleigh/481760
+when: 1554062180.6616
