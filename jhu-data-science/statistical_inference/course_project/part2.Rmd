@@ -1,0 +1,87 @@
+---
+title: 'Part 2: Basic Inferential Data Analysis'
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+# Summary 
+
+Based on my findings, it appears that higher doses of Vitamin C promote greater tooth growth. At the highest dose tested, orange juice (OJ) and ascorbic acid (VC) were both equally effective, but at the lower doses VC was more effective than OJ.
+
+# Analyses
+
+The following analyses assume that the guinea pigs were tested as independent samples (i.e., different pigs in different groups). Thus, an independent samples t-test is appropriate. It also assumes that the variances between groups are not equal (this will be a more conservative test anyway). I am also using p < .05 as a significance criterion. Because many tests are used, a family-wise correction procedure is used to adjust the p-values by the number of tests.
+
+## Load the ToothGrowth data and perform some basic exploratory data analyses
+
+```{r}
+# Load the data
+# "The Effect of Vitamin C on Tooth Growth in Guinea Pigs"
+data(ToothGrowth)
+```
+
+```{r}
+# Look at the structure of the data
+str(ToothGrowth)
+```
+
+```{r}
+plot(ToothGrowth$len ~ ToothGrowth$dose, main = "Tooth Length by Vitamin C Dose", xlab = "Dose", ylab = "Tooth Length")
+```
+
+It looks like tooth lengths are larger at higher doses of Vitamin C. Interestingly, a dose of 1.5 was not administered, but an equal number of 0.5, 1.0, and 2.0 doses were given. The distribution of tooth lengths is also relatively normal.
+
+## Provide a basic summary of the data
+
+```{r}
+nrow(ToothGrowth)
+summary(ToothGrowth)
+```
+
+There were 30 pigs tested. The average tooth length was about 19 units. Doses were given as OJ or ascorbic acid ("VC"), and 30 of each type were given.
+
+## Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+
+We will adjust the p values by multiplying by the number of tests.
+
+```{r}
+ntests <- 6
+```
+
+
+### Differences by dose
+
+Next let's look at differences by dose. Since we are using only techniques from class, we will create pairs and test each pair separately, adjusting for family-wise error by multiplying the p-value by the number of pairs tested. We see that there are significant differences between the doses: At larger doses we see more tooth growth.
+
+```{r}
+dose1 <- ToothGrowth[ToothGrowth$dose==0.5,]
+dose2 <- ToothGrowth[ToothGrowth$dose==1.0,]
+dose3 <- ToothGrowth[ToothGrowth$dose==2.0,]
+
+t.test(dose1$len, dose2$len, alt = "two.sided", paired = FALSE)$p.value * ntests
+t.test(dose1$len, dose3$len, alt = "two.sided", paired = FALSE)$p.value * ntests
+t.test(dose2$len, dose3$len, alt = "two.sided", paired = FALSE)$p.value * ntests
+```
+
+
+### Comparing OJ and VC at same dosages
+
+Next we will compare OJ and VC at the same dosages.
+
+```{r}
+dose1.oj <- ToothGrowth[ToothGrowth$dose==0.5 & ToothGrowth$supp == "OJ",]
+dose1.vc <- ToothGrowth[ToothGrowth$dose==0.5 & ToothGrowth$supp == "VC",]
+dose2.oj <- ToothGrowth[ToothGrowth$dose==1.0 & ToothGrowth$supp == "OJ",]
+dose2.vc  <- ToothGrowth[ToothGrowth$dose==1.0 & ToothGrowth$supp == "VC",]
+dose3.oj <- ToothGrowth[ToothGrowth$dose==2.0 & ToothGrowth$supp == "OJ",]
+dose3.vc  <- ToothGrowth[ToothGrowth$dose==2.0 & ToothGrowth$supp == "VC",]
+
+t.test(dose1.vc$len, dose1.oj$len, alt = "two.sided", paired = FALSE)$p.value * ntests
+t.test(dose2.vc$len, dose2.oj$len, alt = "two.sided", paired = FALSE)$p.value * ntests
+t.test(dose3.vc$len, dose3.oj$len, alt = "two.sided", paired = FALSE)$p.value * ntests
+```
+
+We see that VC is better than OJ at doses of 0.5 and 1.0, but OJ and VC are not different at a dose of 2.0.
+
+

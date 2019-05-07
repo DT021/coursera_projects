@@ -1,0 +1,400 @@
+---
+title: "Part 1: Simulation Exercise"
+output: pdf
+
+
+# Part 1: Simulation Exercise
+
+## Show the sample mean and compare it to the theoretical mean of the distribution
+
+First, let's set our lambda value and calculate the theoretical mean, given by 1/lambda.
+
+```{r}
+# Lambda
+l = 0.2
+
+# Theoretical mean
+1/l
+```
+
+Next, let's generate a single sample of 40 exponentials, and take a look at the mean that is generated.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+# Set N
+n = 40
+
+# Take the mean of the generated sample
+mean(rexp(n, l))
+```
+
+We see that the mean is larger than the theoretical mean.
+
+However, per the Law of Large Numbers, larger samples will lead to a closer approximation of theoretical parameters. Thus, if we use a larger n, we more closely approximate the theoretical mean.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+# List of sample sizes to simulate
+ns <- c(40, 400, 4000, 40000, 400000)
+
+means <- NULL
+# For each sample size in the list, generate a
+# distribution, take the mean, and put it into a
+# collection of means
+for(i in 1:length(ns)){
+  means <- rbind(means, round(mean(rexp(ns[i], l)), 2))
+}
+# Print the means
+means
+```
+
+For example, we see here that once we get into the 1000s, the sample mean is much closer to the theoretical mean.
+
+We can also look at the mean of a distribution of 1000 means -- each representing a sample of 40 exponentials.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+means <- NULL
+# Generate 1000 distributions of 40 exponentials,
+# taking the mean of each one and putting it into
+# a collection of means
+for (i in 1:1000){
+  means = c(means, mean(rexp(n, l)))
+}
+# Mean of means
+mean(means)
+```
+
+Here too we see that it is closer than a single sample, per the LLN.
+
+
+## Show how variable the sample is (via variance) and compare it to the theoretical variance of the distribution
+
+
+First, let's set our lambda value and calculate the theoretical variance, given by 1/lambda.
+
+```{r}
+l = 0.2
+
+1/l
+```
+
+Next, let's generate a single sample of 40 exponentials, and take a look at the sd that is generated.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+# Set N
+n = 40
+
+# Take the sd of the generated sample
+sd(rexp(n, l))
+```
+
+We see that it is larger than the theoretical value. This is to be expected, because smaller samples are noisier.
+
+Next let's look at the SD with more exponentials. Per the Law of Large Numbers, our variance parameter converges on the theoretical value.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+# List of sample sizes to simulate
+ns <- c(40, 400, 4000, 40000, 400000)
+
+sds <- NULL
+# For each sample size in the list, generate a
+# distribution, take the sd, and put it into a
+# collection of sds
+for(i in 1:length(ns)){
+  sds <- rbind(sds, round(sd(rexp(ns[i], l)), 2))
+}
+# Print the sds
+sds
+```
+
+We can also look at the SD of a distribution of 1000 distribution averages -- each representing a sample of 40 exponentials.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+means = NULL
+# Generate 1000 distributions of 40 exponentials,
+# taking the mean of each one and putting it into
+# a collection of means
+for (i in 1:1000){
+  means = c(means, mean(rexp(n, l)))
+}
+# Mean of the distribution of sds
+sd(means)
+```
+
+We see that the SD of the distribution of means is much smaller than the theoretical SD. This is explained by the Central Limit Theorem. The theoretical value of sample means is given by the theoretical variance of the population divided by sample size. In this case...
+
+```{r}
+5/40
+```
+
+So we are not far off.
+
+
+## Show that the distribution is approximately normal
+
+Next we can look at the distribution of averages of 40 exponentials.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+means <- NULL
+# Generate 1000 distributions of 40 exponentials,
+# taking the mean of each one and putting it into
+# a collection of means
+for (i in 1:1000){
+  means <- c(means, mean(rexp(n, l)))
+}
+# Histogram
+hist(means, 
+     main = "Histogram of distribution\nof averages of 40 exponentials",
+     xlab = "sample means")
+```
+
+We see that it is approximately normal. We know this because of the symmetrical, bell-curved shape.
+
+For example, the following is a histogram of a sample generated using random numbers from a normal distribution
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+hist(rnorm(n, mean = 5, sd = 5), 
+     main = "Normal distribution, mean = 5, sd = 5",
+     xlab = "values")
+```
+
+If we compare this to a large collection of exponentials we see that it is non-normal. We know it is non-normal because it does not have a symmetrical, bell-curved shape. It is skewed towards 0.
+
+```{r}
+# Set the random seed for reproducible results
+set.seed(12345)
+
+# Set N to something large
+n = 4000
+
+# Histogram of the generated sample
+hist(rexp(n, l), 
+     main = "Histogram of a sample of 4000 exponentials",
+     xlab = "values")
+```
+
+# Part 2: Basic Inferential Data Analysis Instructions
+
+## Load the ToothGrowth data and perform some basic exploratory data analyses
+
+```{r}
+# Load the data
+# "The Effect of Vitamin C on Tooth Growth in Guinea Pigs"
+data(ToothGrowth)
+```
+
+```{r}
+# Look at the structure of the data
+str(ToothGrowth)
+```
+
+```{r}
+hist(ToothGrowth$dose) # Vitamin C dose
+hist(ToothGrowth$len) # Tooth length
+plot(ToothGrowth$len ~ ToothGrowth$dose,
+     main = "Tooth Length by Vitamin C Dose",
+     xlab = "Dose",
+     ylab = "Tooth Length")
+```
+
+It looks like tooth lengths are larger at higher doses of Vitamin C. Interestingly, a dose of 1.5 was not administered, but an equal number of 0.5, 1.0, and 2.0 doses were given. The distribution of tooth lengths is also relatively normal.
+
+## Provide a basic summary of the data
+
+```{r}
+nrow(ToothGrowth)
+summary(ToothGrowth)
+```
+
+There were 30 pigs tested. The average tooth length was about 19 units. Doses were given as OJ or ascorbic acid ("VC"), and 30 of each type were given.
+
+## Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+
+We will perform 10 tests, so we will adjust the p values by multiplying by this number of tests.
+
+```{r}
+ntests <- 13
+```
+
+
+### Differences by supplement
+
+First let's compare length by supplement, ignoring dose.
+
+```{r}
+t.test(ToothGrowth$len ~ ToothGrowth$supp, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> supp.p
+
+supp.p * ntests
+```
+
+We do not see a difference here, after adjusting for FWE.
+
+### Differences by dose
+
+Next let's look at differences by dose. Since we are using only techniques from class, we will create pairs and test each pair separately, adjusting for family-wise error by multiplying the p-value by the number of pairs tested.
+
+```{r}
+dose1 <- ToothGrowth[ToothGrowth$dose==0.5,]
+dose2 <- ToothGrowth[ToothGrowth$dose==1.0,]
+dose3 <- ToothGrowth[ToothGrowth$dose==2.0,]
+
+# Pair 1 (0.5 vs. 1.0)
+t.test(dose1$len, dose2$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair1.p
+
+# Pair 2 (0.5 vs. 2.0)
+t.test(dose1$len, dose3$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair2.p
+
+# Pair 3 (1.0 vs. 2.0)
+t.test(dose2$len, dose3$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair3.p
+
+mean(dose1$len)
+mean(dose2$len)
+mean(dose3$len)
+pair1.p * ntests
+pair2.p * ntests
+pair3.p * ntests
+```
+
+We see that there are significant differences between the doses: At larger doses we see more tooth growth.
+
+
+
+### Differences by dose -- OJ only
+
+Next we will look at OJ doses.
+
+```{r}
+dose1.oj <- ToothGrowth[ToothGrowth$dose==0.5 & ToothGrowth$supp=="OJ",]
+dose2.oj <- ToothGrowth[ToothGrowth$dose==1.0 & ToothGrowth$supp=="OJ",]
+dose3.oj <- ToothGrowth[ToothGrowth$dose==2.0 & ToothGrowth$supp=="OJ",]
+
+# Pair 1 (0.5 vs. 1.0)
+t.test(dose1.oj$len, dose2.oj$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair1.p.oj
+
+# Pair 2 (0.5 vs. 2.0)
+t.test(dose1.oj$len, dose3.oj$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair2.p.oj
+
+# Pair 3 (1.0 vs. 2.0)
+t.test(dose2.oj$len, dose3.oj$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair3.p.oj
+
+mean(dose1.oj$len)
+mean(dose2.oj$len)
+mean(dose3.oj$len)
+pair1.p.oj * ntests
+pair2.p.oj * ntests
+pair3.p.oj * ntests
+```
+
+We see a difference between an OJ dose of 0.5 and 1.0, but not between 1.0 and 1.5.
+
+### Differences by dose -- VC only
+
+Next we'll look at VC doses.
+
+```{r}
+dose1.vc <- ToothGrowth[ToothGrowth$dose==0.5 & ToothGrowth$supp=="VC",]
+dose2.vc <- ToothGrowth[ToothGrowth$dose==1.0 & ToothGrowth$supp=="VC",]
+dose3.vc <- ToothGrowth[ToothGrowth$dose==2.0 & ToothGrowth$supp=="VC",]
+
+# Pair 1 (0.5 vs. 1.0)
+t.test(dose1.vc$len, dose2.vc$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair1.p.vc
+
+# Pair 2 (0.5 vs. 2.0)
+t.test(dose1.vc$len, dose3.vc$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair2.p.vc
+
+# Pair 3 (1.0 vs. 2.0)
+t.test(dose2.vc$len, dose3.vc$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair3.p.vc
+
+mean(dose1.vc$len)
+mean(dose2.vc$len)
+mean(dose3.vc$len)
+pair1.p.vc * ntests
+pair2.p.vc * ntests
+pair3.p.vc * ntests
+```
+
+We see a differences between all levels of VC doses.
+
+### Comparing OJ and VC at same dosages
+
+Next we will compare OJ and VC at the same dosages.
+
+```{r}
+# Dose 1 (0.5)
+t.test(dose1.vc$len, dose1.oj$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair1.p.vc.oj
+
+# Dose 2 (1.0)
+t.test(dose2.vc$len, dose2.oj$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair2.p.vc.oj
+
+# Dose 3 (2.0)
+t.test(dose3.vc$len, dose3.oj$len, 
+       alt = "two.sided",
+       paired = FALSE)$p.value -> pair3.p.vc.oj
+
+rbind( 
+  mean(dose1.vc$len),
+  mean(dose1.oj$len)
+)
+rbind( 
+  mean(dose2.vc$len),
+  mean(dose2.oj$len)
+)
+rbind( 
+  mean(dose3.vc$len),
+  mean(dose3.oj$len)
+)
+
+pair1.p.vc.oj * ntests
+pair2.p.vc.oj * ntests
+pair3.p.vc.oj * ntests
+```
+
+In social science we would call a p value of less than .10 "marginally significant". So we see that VC is marginally better than OJ at a dose of 0.5, significantly better at 1.0, and that OJ and VC are equivalent at a dose of 2.0.
+
+
