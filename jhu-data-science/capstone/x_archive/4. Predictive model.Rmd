@@ -1,0 +1,227 @@
+---
+title: "Exploratory text analysis (Milestone Report)"
+author: "Tyler Burleigh"
+date: "6/30/2019"
+output: html_document
+---
+
+## Load libraries
+```{r, message = FALSE, warning = FALSE}
+suppress <- function(x){suppressMessages(suppressWarnings(x))}
+suppress(library(tidyverse))
+suppress(library(tidytext))
+suppress(library(data.table))
+suppress(library(kableExtra))
+suppress(library(quanteda))
+
+# Read data and remove non-ASCII
+twitter <- readLines(file("data/en_US.twitter.txt",open="r"))
+news <- readLines(file("data/en_US.news.txt",open="r"))
+blogs <- readLines(file("data/en_US.blogs.txt",open="r"))
+
+# Take a 10% sample of each
+twitter[sample(length(twitter), round(length(twitter)*.10))] -> twitter_sample
+news[sample(length(news), round(length(news)*.10))] -> news_sample
+blogs[sample(length(blogs), round(length(blogs)*.10))] -> blogs_sample
+
+# Join while removing non-ASCII characters
+texts_sample <- c(twitter_sample, news_sample, blogs_sample) %>%
+  iconv(., "latin1", "ASCII", sub="")
+
+# Remove objects no longer needed from memory
+rm(twitter, blogs, news, twitter_sample, news_sample, blogs_sample)
+```
+
+```{r}
+# Tokenize to sentences
+texts_sample %>% 
+    tokens(what = "sentence") %>% 
+    tokens_tolower() %>%
+    as.character() -> sentences
+```
+
+```{r}
+# Tokenize to 2grams
+sentences %>% 
+    tokens(ngrams = 2, 
+           what = "word",
+           remove_twitter = TRUE, 
+           remove_numbers = TRUE, 
+           remove_punct = TRUE,
+           remove_symbols = TRUE) %>%
+    as.character() -> twograms
+
+# Aggregate and count
+twograms_count <- tibble(text = twograms) %>%
+    group_by(text) %>%
+    summarize(n = n())
+
+rm(twograms)
+```
+
+```{r}
+# Tokenize to 3grams
+sentences %>% 
+    tokens(ngrams = 3, 
+           what = "word",
+           remove_twitter = TRUE, 
+           remove_numbers = TRUE, 
+           remove_punct = TRUE,
+           remove_symbols = TRUE) %>%
+    as.character() -> threegrams
+
+# Aggregate and count
+threegrams_count <- tibble(text = threegrams) %>%
+    group_by(text) %>%
+    summarize(n = n())
+
+rm(threegrams)
+```
+
+```{r}
+# Tokenize to 4grams
+sentences %>% 
+    tokens(ngrams = 4, 
+           what = "word",
+           remove_twitter = TRUE, 
+           remove_numbers = TRUE, 
+           remove_punct = TRUE,
+           remove_symbols = TRUE) %>%
+    as.character() -> fourgrams
+
+# Aggregate and count
+fourgrams_count <- tibble(text = fourgrams) %>%
+    group_by(text) %>%
+    summarize(n = n())
+
+rm(fourgrams)
+```
+
+```{r}
+# Tokenize to 5grams
+sentences %>% 
+    tokens(ngrams = 5, 
+           what = "word",
+           remove_twitter = TRUE, 
+           remove_numbers = TRUE, 
+           remove_punct = TRUE,
+           remove_symbols = TRUE) %>%
+    as.character() -> fivegrams
+
+# Aggregate and count
+fivegrams_count <- tibble(text = fivegrams) %>%
+    group_by(text) %>%
+    summarize(n = n())
+
+rm(fivegrams)
+```
+
+```{r}
+models <- list(
+  twograms = twograms_count,
+  threegrams = threegrams_count,
+  fourgrams = fourgrams_count,
+  fivegrams = fivegrams_count
+)
+
+rm(twograms_count, threegrams_count, fourgrams_count, fivegrams_count)
+
+#save(models, file = "models.Rdata")
+```
+
+
+
+# Lookup using a manual backoff method
+
+```{r}
+backoff_lookup <- function(item){
+  
+  items <- strsplit(item, split = "_")[[1]]
+  lookup_items <- list(
+    paste0("^", paste(items[1], items[2], items[3], items[4], sep="_"), "_"),
+    paste0("^", paste(items[2], items[3], items[4], sep="_"), "_"),
+    paste0("^", paste(items[3], items[4], sep="_"), "_"),
+    paste0("^", paste(items[4], sep="_"), "_")
+  )
+  
+  for(i in 1:4){
+    models[[5-i]] %>%
+      filter(grepl(lookup_items[[i]], text)) %>%
+      arrange(desc(n)) -> return
+    
+    if(nrow(return) > 0) 
+      break
+  }
+  return
+}
+```
+
+
+## Question 1
+```{r}
+backoff_lookup("and_a_case_of")
+```
+
+
+## Question 2
+```{r}
+backoff_lookup("it_would_mean_the")
+```
+
+## Question 3
+```{r}
+backoff_lookup("and_make_me_the")
+```
+
+## Question 4
+```{r}
+backoff_lookup("still_struggling_but_the")
+```
+
+## Question 5
+```{r}
+backoff_lookup("romantic_date_at_the")
+```
+
+
+## Question 6
+```{r}
+backoff_lookup("and_be_on_my")
+```
+
+
+## Question 7
+```{r}
+backoff_lookup("it_in_quite_some")
+```
+
+
+## Question 8
+```{r}
+backoff_lookup("his_eyes_with_his")
+```
+
+
+## Question 9
+```{r}
+backoff_lookup("the_faith_during_the")
+```
+
+
+## Question 10
+```{r}
+backoff_lookup("then_you_must_be")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

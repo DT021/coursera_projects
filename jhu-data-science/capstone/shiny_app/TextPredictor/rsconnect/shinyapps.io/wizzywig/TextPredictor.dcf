@@ -1,0 +1,13 @@
+name: TextPredictor
+title: TextPredictor
+username:
+account: wizzywig
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1054184
+bundleId: 2271672
+url: https://wizzywig.shinyapps.io/TextPredictor/
+when: 1564335672.48446
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|2grams_freq.csv|3grams_freq.csv|4grams_freq.csv|5grams_freq.csv|derby.log|TextPredictor.zip|logs/log4j.spark.log

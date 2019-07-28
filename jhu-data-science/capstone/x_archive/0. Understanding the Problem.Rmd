@@ -1,0 +1,65 @@
+---
+title: "0. Understanding the Problem"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(data.table)
+
+# Check existence of data file
+if(!file.exists("data/data.zip")){
+  download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip", "data/data.zip")
+  unzip("data/data.zip", junkpaths = TRUE, exdir = "data")
+}
+
+```
+
+# What do the data look like?
+
+The data consist of multiple .txt files. Each .txt file appears to be a line-separated
+file, where each line is a different observation. The data come from three different
+sources: news, blogs, and twitter.
+
+# Where do the data come from?
+
+The data come from "publicly available sources by a web crawler. The crawler checks for 
+language, so as to mainly get texts consisting of the desired language*... Once the raw corpus 
+has been collected, it is parsed further, to remove duplicate entries and split into individual 
+lines. Approximately 50% of each entry is then deleted."
+
+# Can you think of any other data sources that might help you in this project?
+
+Data sources that could be used to classify parts of a text message -- e.g., parts
+of speech, "stop word" databases. "
+
+# What are the common steps in natural language processing?
+
+According to sources like https://medium.com/@ageitgey/natural-language-processing-is-fun-9a0bff37854e
+
+Common steps appear to be:
+
+  1. Separate data into sentences ("sentence segmentation")
+  2. Identify the words of each sentence ("word tokenization")
+  3. Identify the part of speech that each word represents (e.g., noun, verb)
+  4. Text lemmatization -- reducing words to their most basic forms
+  5. Identify "stop words" (e.g., "and", "the")
+  6. Identify how words relate to one another ("dependency parsing")
+  7. Identifying meaningful entities ("named-entity recognition")
+  8. Coreference identification
+
+
+# What are some common issues in the analysis of text data?
+
+Text data is messy and unstructured. NLP requires a lot of cleaning and pre-processing.
+The meaning of words can't be taken on an individual basis, but depend on the surrounding
+context.
+
+# What is the relationship between NLP and the concepts you have learned in the Specialization?
+
+NLP involves finding structure and meaning in messy, unstructured datasets. It involves a lot of
+cleaning an pre-processing, as well as feature engineering. Solving NLP problems involves
+creating predictive statistical models.
+
+
+

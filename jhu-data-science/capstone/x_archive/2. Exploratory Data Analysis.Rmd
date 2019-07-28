@@ -1,0 +1,134 @@
+---
+title: "2. Exploratory Data Analysis"
+author: "Tyler Burleigh"
+date: "5/28/2019"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(data.table)
+```
+
+```{r}
+twitter <- readLines(file("data/en_US.twitter.txt",open="r"))
+news <- readLines(file("data/en_US.news.txt",open="r"))
+blogs <- readLines(file("data/en_US.blogs.txt",open="r"))
+
+# Convert to tibbles
+tibble(line = 1:length(twitter), text = twitter) -> twitter_df
+tibble(line = 1:length(news), text = news) -> news_df
+tibble(line = 1:length(blogs), text = blogs) -> blogs_df
+```
+
+## Frequencies of words
+Some words are more frequent than others - what are the distributions of word frequencies?
+```{r}
+twitter_df %>%
+  head(1000) %>% # Limit amount of text processed
+  unnest_tokens(word, text) %>% # Tokenization
+  anti_join(stop_words) -> twitter_words
+
+twitter_words %>% count(word, sort = TRUE)
+```
+
+## Frequencies of n-grams
+What are the frequencies of 2-grams and 3-grams in the dataset?
+```{r}
+twitter_df %>%
+  head(1000) %>% # Limit amount of text processed
+  unnest_tokens(bigram, text, token = "ngrams", n = 3, n_min = 2) -> twitter_ngrams
+
+twitter_ngrams %>% count(bigram, sort = TRUE)
+```
+
+## Unique words needed to cover % of word instances
+
+How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?
+
+This question is sort of vague. Where are the frequencies coming from in this "frequency sorted dictionary"? Since it is not specified, 
+we'll derive frequencies from the text we're analyzing.
+
+### Load dictionary
+
+First we need an English dictionary
+```{r}
+#https://github.com/dwyl/english-words
+en <- fread("https://raw.githubusercontent.com/dwyl/english-words/master/words.txt") %>% as_.tibble()
+```
+
+Tokenize a corpus, then remove non-English words
+```{r}
+twitter_df %>%
+  unnest_tokens(word, text) %>%
+  filter(word %in% en$V1) -> twitter_words_in_dict
+```
+
+Count word frequencies, then total word instances, then get word frequency as percentage
+```{r}
+twitter_words_in_dict %>% count(word, sort = TRUE) -> twitter_words_in_dict_freqs
+sum(twitter_words_in_dict_freqs$n) -> total_word_instances
+twitter_words_in_dict_freqs %>% mutate(pct = n / total_word_instances) -> twitter_words_in_dict_freqs
+```
+
+Iterate down the list until we've reached a cumulative sum of 50% of all instances
+```{r}
+total_coverage <- 0
+i <- 1
+while(total_coverage < 50){
+  word <- twitter_words_in_dict_freqs[1,]
+  total_coverage <- total_coverage + word$pct
+  i <- i + 1
+}
+i # Number of unique words needed for 50% coverage
+
+
+total_coverage <- 0
+i <- 1
+while(total_coverage < 90){
+  word <- twitter_words_in_dict_freqs[1,]
+  total_coverage <- total_coverage + word$pct
+  i <- i + 1
+}
+i # Number of unique words needed for 90% coverage
+```
+
+## How to evaluate number of non-English words
+
+How do you evaluate how many of the words come from foreign languages?
+
+One approach is to look at words in / not in the English dictionary. 
+Of course, this will have false-positives due to slang, acronyms, etc.
+
+```{r}
+twitter_df %>%
+  unnest_tokens(word, text) -> all_twitter_words
+
+all_twitter_words %>% 
+  filter(word %in% en$V1) %>%
+  distinct(word) %>%
+  nrow # Number of unique words in English dictionary
+
+all_twitter_words %>% 
+  filter(!word %in% en$V1) %>%
+  distinct(word) %>%
+  nrow # Number of unique words not in English dictionary
+```
+
+
+## How to increase coverage
+
+Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
+
+We can use non-Dictionary sources. For example, the lexicon package has additional word lists. hash_internet_slang is one that would be particularly helpful with the Twitter data.
+
+```{r}
+library(lexicon)
+```
+
+
+
+
+
+

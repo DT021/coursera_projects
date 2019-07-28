@@ -1,0 +1,107 @@
+---
+title: "Exploratory text analysis (Milestone Report)"
+author: "Tyler Burleigh"
+date: "7/6/2019"
+output: html_document
+---
+
+## Load libraries
+```{r, message = FALSE, warning = FALSE}
+suppress <- function(x){suppressMessages(suppressWarnings(x))}
+suppress(library(tidyverse))
+suppress(library(data.table))
+suppress(library(quanteda))
+suppress(library(future))
+suppress(library(LaF))
+suppress(library(progress))
+suppress(library(reader))
+suppress(library(pryr))
+suppress(library(pbapply))
+``` 
+
+# Clean data files
+```{r}
+# Function to read and write clean files
+cleanFiles <- function(file, newfile){
+  con <- file(file, "rb")
+  res <- writeLines(iconv(readLines(con, skipNul = TRUE), "latin1", "ASCII", sub=""), newfile)
+  close(con)
+}
+
+cleanFiles("data/en_US.twitter.txt", "data/en_US.twitter_clean.txt")
+cleanFiles("data/en_US.news.txt", "data/en_US.news_clean.txt")
+cleanFiles("data/en_US.blogs.txt", "data/en_US.blogs_clean.txt")
+```
+
+
+# Extract and save ngrams to files
+```{r}
+loadFile <- function(file){
+  con <- file(file, "rb")
+  data <- readLines(con, skipNul = TRUE)
+  close(con)
+  data
+}
+
+# Process 10000 lines at a time, extracting the ngrams and
+# appending them to a file
+processLines = function(file, ng) {
+  
+  data <- loadFile(file)
+  while (TRUE) {
+    lines <- head(data, 10000) # Read 10000 lines
+    data <- data[-(1:10000)] # Delete 10000 lines
+    
+    lines %>%
+      tokens(what = "sentence") %>% 
+      tokens_tolower() %>%
+      as.character() %>% 
+      tokens(ngrams = ng, 
+             what = "word",
+             remove_twitter = TRUE, 
+             remove_numbers = TRUE, 
+             remove_punct = TRUE,
+             remove_symbols = TRUE) %>%
+      as.character() %>%
+      write(., file = paste0("ngrams/", ng, "grams.txt"), append = TRUE)
+  
+    if (length(data) < 10000)
+      break
+  }
+}
+
+files <- c("data/en_US.twitter_clean.txt", "data/en_US.news_clean.txt", "data/en_US.blogs_clean.txt")
+lapply(files, function(x){
+  for(k in 1){
+    processLines(x, k)
+  }
+})
+  
+```
+
+
+# Generate ngram frequency models
+```{r}
+for(i in 1:5){
+  parse_lines <- function(file){
+    readLines(file) %>%
+      tibble(text = .) %>%
+      group_by(text) %>%
+      summarize(n = dplyr::n()) %>%
+      filter(n > 1) -> ngrams
+    ngrams
+  }
+  ngrams <- parse_lines(paste0("ngrams/",i,"grams.txt"))
+  write.csv(ngrams, paste0("ngrams/",i,"grams_freq.csv") ,row.names = F)
+  rm(ngrams)
+}
+```
+
+
+```{r}
+onegrams <- fread('ngrams/1grams_freq.csv')
+twograms <- fread('ngrams/2grams_freq.csv')
+threegrams <- fread('ngrams/3grams_freq.csv')
+fourgrams <- fread('ngrams/4grams_freq.csv')
+fivegrams <- fread('ngrams/5grams_freq.csv')
+```

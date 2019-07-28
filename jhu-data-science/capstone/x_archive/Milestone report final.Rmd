@@ -1,0 +1,254 @@
+---
+title: "Towards a simple autocomplete app"
+author: "Tyler Burleigh"
+date: "6/30/2019"
+output: html_document
+---
+
+# Executive summary
+
+The purpose of this document is to identify the major features of the data and
+briefly explain my plans for creating a prediction algorithm.
+
+The data comes from twitter, news articles, and blog posts.
+
+The major features I observed were as follows:
+
+- Word and bigram frequencies differ between the three datasets. This suggests that
+context (twitter, blog, or news) is an important feature.
+- Some words appear much more frequently than others.
+- Some words appear much more frequently after other words.
+- Not every word has a bigram word pair associated with it. This is an important
+edge case to consider.
+- There are some non-English, non-numeric characters that I will want to clean up
+before building the model.
+
+My prediction algorithm / Shiny app will work as follows:
+
+1. Ask user to specify their context (twitter, blog, or news)
+2. For each word input by the user, perform a lookup on the bigram table corresponding to 
+user context, to identify the most frequent bigram word pairs
+3. Pick the top 3 most frequent bigram word pairs and present these as options to the user
+4. If 3 bigram word pairs are not found, backfill with most frequent unigrams (single words)
+5. The 3 words appear as buttons that can be clicked to add to user input
+6. The 1st most frequent word will appear in the middle, the 2nd most frequent 
+word to the left, and the 3rd most frequent word to the right
+
+This design has a similar UX to many digital Smartphone keyboards.
+
+# Load libraries and data
+Load libraries and data files.
+
+## Load libraries, data
+```{r, message = FALSE, warning = FALSE}
+suppress <- function(x){suppressMessages(suppressWarnings(x))}
+suppress(library(tidyverse))
+suppress(library(tidytext))
+suppress(library(data.table))
+suppress(library(kableExtra))
+suppress(library(pryr))
+
+twitter_full <- readLines(file("data/en_US.twitter.txt",open="r"))
+news_full <- readLines(file("data/en_US.news.txt",open="r"))
+blogs_full <- readLines(file("data/en_US.blogs.txt",open="r"))
+
+# Convert to tibbles
+tibble(line = 1:length(twitter_full), text = twitter_full) -> twitter_full
+tibble(line = 1:length(news_full), text = news_full) -> news_full
+tibble(line = 1:length(blogs_full), text = blogs_full) -> blogs_full
+
+# Randomly select a subset
+## This will minimize the memory footprint considerably without reducing accuracy
+## by all that much. Although I didn't include it in this document, I did some
+## work to validate this approach.
+set.seed(2045)
+twitter_full[sample(nrow(twitter_full), 20000), ] -> twitter
+news_full[sample(nrow(news_full), 20000), ] -> news
+blogs_full[sample(nrow(blogs_full), 20000), ] -> blogs
+```
+
+## Extract and count words
+```{r, message = FALSE, warning = FALSE}
+words_full <- list('twitter' = twitter %>% unnest_tokens(word, text),
+                   'news' = news %>% unnest_tokens(word, text), 
+                   'blogs' = blogs %>% unnest_tokens(word, text))
+
+words <- list('twitter' = twitter %>% 
+                unnest_tokens(word, text) %>% 
+                count(word, sort = TRUE) %>% 
+                mutate(pct = (n / sum(n)) * 100), 
+              
+              'news' = news %>% 
+                unnest_tokens(word, text) %>% 
+                count(word, sort = TRUE) %>% 
+                mutate(pct = (n / sum(n)) * 100), 
+              
+              'blogs' = blogs %>% 
+                unnest_tokens(word, text) %>% 
+                count(word, sort = TRUE) %>% 
+                mutate(pct = (n / sum(n)) * 100)
+              )
+```
+
+## Extract and count bigrams
+```{r}
+bigrams <- list('twitter' = twitter %>% 
+                  unnest_tokens(word, text, token = "ngrams", n = 2) %>% 
+                  count(word, sort = TRUE) %>% 
+                  mutate(pct = (n / sum(n)) * 100) %>%
+                  separate(word, c("word1", "word2"), sep = " "),
+                
+                'news' = news %>% 
+                  unnest_tokens(word, text, token = "ngrams", n = 2) %>% 
+                  count(word, sort = TRUE) %>% 
+                  mutate(pct = (n / sum(n)) * 100) %>%
+                  separate(word, c("word1", "word2"), sep = " "),
+                
+                'blogs' = blogs %>% 
+                  unnest_tokens(word, text, token = "ngrams", n = 2) %>% 
+                  count(word, sort = TRUE) %>% 
+                  mutate(pct = (n / sum(n)) * 100) %>%
+                  separate(word, c("word1", "word2"), sep = " ")
+                )
+```
+
+# Features of text data
+
+## Word and line counts
+```{r}
+df <- data.frame(`lines` = numeric(), `words` = numeric()) 
+for(i in 1:3){
+  df[i,1] <- max(words_full[[i]]$line)
+  df[i,2] <- length(words_full[[i]]$word)
+}
+row.names(df) <- c("twitter", "news", "blogs")
+df
+```
+
+## Word frequencies in each dataset
+What are the most frequent words in each dataset? There are many similarities and differences. The differences suggest context will be important in prediction.
+```{r}
+names <- c("twitter", "news", "blogs")
+par(mfrow=c(1,3))
+for(i in 1:3){
+  words[[i]] %>%
+    top_n(15, pct) %>%
+    ggplot(aes(reorder(word, pct), pct)) +
+    geom_col(show.legend = FALSE) +
+    xlab("") +
+    ylab("") +
+    ggtitle(paste0("Frequency (%) of top 15 words in ", names[i] ," dataset")) +
+    coord_flip() -> plot
+  print(plot)
+}
+```
+
+## Word frequency summary
+Most words are used infrequently (< .005% of the time).
+```{r}
+df <- data.frame(`mean word frequency` = numeric(), `max word frequency` = numeric(),
+                 `mean word freq as pct` = numeric(), `max word freq as pct` = numeric()) 
+
+for(i in 1:3){
+  df[i,1] <- round(mean(words[[i]]$n))
+  df[i,2] <- max(words[[i]]$n)
+  df[i,3] <- round(mean(words[[i]]$pct), 3)
+  df[i,4] <- round(max(words[[i]]$pct), 3)
+}
+row.names(df) <- c("twitter", "news", "blogs")
+df
+```
+
+# N-gram frequencies
+It will be important to look at n-gram frequencies. In the context of text analysis, an n-gram is a 
+sequence of words extracted from the text. N is the number of sequential words extracted.
+
+For example, in the sentence "The boy kicked the ball" the following 2-grams can
+be extracted: "the boy", "boy kicked", "kicked the", and "the ball"
+
+```{r}
+tibble(line = 1:length("The boy kicked the ball"), text = "The boy kicked the ball") %>% 
+  unnest_tokens(word, text, token = "ngrams", n = 2)
+```
+
+Ngrams can be easily adapted for the task of prediction.
+
+For any given word, we can look at the most frequently occuring bigram pair. A simple
+model could use this to predict the next most likely word to appear.
+
+## Words most frequently following "I"
+```{r}
+names <- c("twitter", "news", "blogs")
+par(mfrow=c(1,3))
+for(i in 1:3){
+  bigrams[[i]] %>%
+    filter(word1 == "i") %>%
+    top_n(10, pct) %>%
+    ggplot(aes(reorder(word2, pct), pct, fill = pct > 0)) +
+    geom_col(show.legend = FALSE) +
+    xlab("") +
+    ylab("Frequency (%)") +
+    ggtitle(paste0("Words most frequently appearing after \"I\" in ", names[i] ," dataset")) +
+    coord_flip() -> plot
+  print(plot)
+}
+```
+
+## Words most frequently following "the"
+```{r}
+names <- c("twitter", "news", "blogs")
+par(mfrow=c(1,3))
+for(i in 1:3){
+  bigrams[[i]] %>%
+    filter(word1 == "the") %>%
+    top_n(10, pct) %>%
+    ggplot(aes(reorder(word2, pct), pct, fill = pct > 0)) +
+    geom_col(show.legend = FALSE) +
+    xlab("") +
+    ylab("Frequency (%)") +
+    ggtitle(paste0("Words most frequently appearing after \"the\" in ", names[i] ," dataset")) +
+    coord_flip() -> plot
+  print(plot)
+}
+```
+
+Importantly, not every word has a bigram!
+
+```{r}
+bigrams$twitter %>% filter(word1 == "onomatopoeia") %>% nrow
+```
+
+
+
+
+# Words with non-English, non-numeric characters
+If a word fails a grep for the regex `[a-zA-Z0-9]` then it contains a character outside
+the English alphabet (A to Z) or the number range 0-9. This is a decent way to detect
+non-English words or potentially noisy data.
+
+```{r}
+for(i in 1:3){
+  words[[i]] %>% mutate(english = grepl("^[a-zA-Z0-9]", word)) -> words[[i]]
+}
+```
+
+```{r}
+round(
+  mean(
+    (words[[1]] %>% filter(!english) %>% nrow / words[[1]] %>% nrow)*100,
+    (words[[2]] %>% filter(!english) %>% nrow / words[[2]] %>% nrow)*100,
+    (words[[3]] %>% filter(!english) %>% nrow / words[[3]] %>% nrow)*100
+  ), 
+2)
+```
+
+Less than 1% of the words contain non-English, non-numeric characters.
+
+```{r}
+words[[1]] %>% filter(!english) %>% distinct(word) %>% select(word)
+words[[2]] %>% filter(!english) %>% distinct(word) %>% select(word)
+words[[3]] %>% filter(!english) %>% distinct(word) %>% select(word)
+```
+
+Many of these actually contain English words. If I remove the non-English characters
+at the beginning, I can clean and salvage much of this data.
